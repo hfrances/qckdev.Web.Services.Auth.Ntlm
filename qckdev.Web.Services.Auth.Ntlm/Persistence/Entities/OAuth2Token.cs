@@ -2,7 +2,7 @@
 
 namespace qckdev.Web.Services.Auth.Ntlm.Persistence.Entities
 {
-    public sealed class Token
+    sealed class OAuth2Token
     {
 
         public Guid TokenId { get; set; }
@@ -13,7 +13,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence.Entities
         public bool Banned { get; set; }
         public bool Consumed { get; set; }
 
-        public User User { get; set; }
+        public ApplicationUser User { get; set; }
 
     }
 }

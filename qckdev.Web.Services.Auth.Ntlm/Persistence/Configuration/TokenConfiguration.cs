@@ -4,10 +4,11 @@ using qckdev.Web.Services.Auth.Ntlm.Persistence.Entities;
 
 namespace qckdev.Web.Services.Auth.Ntlm.Persistence.Configuration
 {
-    sealed class TokenConfiguration : IEntityTypeConfiguration<Token>
+    sealed class TokenConfiguration : IEntityTypeConfiguration<OAuth2Token>
     {
-        public void Configure(EntityTypeBuilder<Token> builder)
+        public void Configure(EntityTypeBuilder<OAuth2Token> builder)
         {
+            builder.HasKey(x => x.TokenId);
             builder.HasIndex(x => new { x.Type, x.Value });
             builder
                 .HasOne(o => o.User)

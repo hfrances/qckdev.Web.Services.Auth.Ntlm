@@ -16,6 +16,7 @@ using Microsoft.Extensions.Configuration;
 using qckdev.Web.Services.Auth.Ntlm.Infrastructure.JwtBearer;
 using qckdev.Web.Services.Auth.Ntlm.Application;
 using qckdev.Web.Services.Auth.Ntlm.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace qckdev.Web.Services.Auth.Ntlm
 {
@@ -50,7 +51,10 @@ namespace qckdev.Web.Services.Auth.Ntlm
                 });
             });
 
-            services.AddPersistence();
+            services.AddPersistence(options =>
+            {
+                options.UseInMemoryDatabase("ntlm-auth");
+            });
 
             services.AddAuthentication(IISDefaults.AuthenticationScheme);
             services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)

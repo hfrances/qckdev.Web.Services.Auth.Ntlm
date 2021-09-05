@@ -1,20 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using qckdev.Web.Services.Auth.Ntlm.Application.Services;
+using qckdev.Web.Services.Auth.Ntlm.Persistence.Entities;
+using System;
 
 namespace qckdev.Web.Services.Auth.Ntlm.Persistence
 {
     public static class DependencyInjections
     {
 
-        public static IServiceCollection AddPersistence(this IServiceCollection service)
+        public static IServiceCollection AddPersistence(this IServiceCollection service, Action<DbContextOptionsBuilder> optionsAction)
         {
             service
-                .AddDbContext<ApplicationDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("ntlm-auth");
-                })
-                .AddScoped<ITokenService, TokenService>();
+                .AddScoped<ITokenService, TokenService>()
+                .AddDbContext<ApplicationDbContext>(optionsAction)
+                .AddIdentityCore<ApplicationUser>()
+                    .AddEntityFrameworkStores<ApplicationDbContext>()
+            ;
             return service;
         }
 

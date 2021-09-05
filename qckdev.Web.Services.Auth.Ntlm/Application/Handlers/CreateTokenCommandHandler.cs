@@ -115,6 +115,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Handlers
                     }
 
                 case Models.GrantType.Refresh_Token:
+                    // https://dev.to/moe23/refresh-jwt-with-refresh-tokens-in-asp-net-core-5-rest-api-step-by-step-3en5
                 default:
                     throw new OAuth2Exception(new OAuth2ErrorDto
                     {
