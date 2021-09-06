@@ -41,35 +41,32 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Handlers
         {
             switch (request.GrantType)
             {
-                case Models.GrantType.Authorization_Code:
-                    var jwtCodeOptions = JwtOptionsMonitor.Get(Constants.AUTHENTICATIONSCHEME_CODE);
+                case GrantType.Authorization_Code:
 
                     try
                     {
-                        var code = JwtGenerator.ValidateToken(jwtCodeOptions.TokenValidationParameters, request.Code.Substring(2));
-                        var userName = code.Claims.SingleOrDefault(x => x.Type == JwtRegisteredClaimNames.NameId)?.Value;
-                        Enum.TryParse(code.Claims.SingleOrDefault(x => x.Type == Helper.CLAIM_ACCESSTYPE)?.Value, out AccessType accessType);
-                        var newClaims = code.Claims.Where(x => x.Type != JwtRegisteredClaimNames.NameId && x.Type != Helper.CLAIM_ACCESSTYPE);
+                        var tokenCode = await TokenService.GetTokenAsync(Constants.TOKENTYPE_CODE, request.Code);
 
-                        if (string.IsNullOrWhiteSpace(userName))
+                        if (tokenCode == null)
                         {
                             throw new OAuth2Exception(new OAuth2ErrorDto
                             {
-                                Code = AuthorizationErrorCode.InvalidRequest,
-                                Description = "Unknown user"
+                                Code = AuthorizationErrorCode.AccessDenied,
+                                Description = "The specified authorization_code has not been granted."
                             });
                         }
                         else
                         {
-                            var tokens = await TokenService.GetTokensByWindowsUserAsync(userName);
-                            var tokenCode = tokens?.SingleOrDefault(x => x.Type == Constants.TOKENTYPE_CODE && x.Value == request.Code);
+                            var userName = tokenCode.Properties.Single(x=> x.Name == Constants.TOKENPROPERTY_LOGIN)?.Value;
+                            var accessTypeString = tokenCode.Properties.SingleOrDefault(x => x.Name == Constants.TOKENPROPERTY_ACCESSTYPE)?.Value;
+                            Enum.TryParse(accessTypeString, out AccessType accessType);
 
-                            if (tokenCode == null)
+                            if (string.IsNullOrWhiteSpace(userName))
                             {
                                 throw new OAuth2Exception(new OAuth2ErrorDto
                                 {
-                                    Code = AuthorizationErrorCode.AccessDenied,
-                                    Description = "The specified authorization_code has not been granted."
+                                    Code = AuthorizationErrorCode.InvalidRequest,
+                                    Description = "Unknown user"
                                 });
                             }
                             else if (tokenCode.State == TokenState.Banned)
@@ -95,7 +92,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Handlers
                                 TokenDto tokenDto;
 
                                 await TokenService.ConsumeTokenAsync(new[] { tokenCode.TokenId });
-                                tokenDto = Helper.CreateToken<TokenDto>(jwtTokenOptions, jwtTokenMoreOptions, userName, newClaims, accessType);
+                                tokenDto = Helper.CreateToken<TokenDto>(jwtTokenOptions, jwtTokenMoreOptions, userName, Array.Empty<Claim>(), accessType);
                                 await Helper.UpdateRefreshTokenAsync(this.TokenService, userName, tokenDto.RefreshToken);
                                 return tokenDto;
                             }
@@ -115,7 +112,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Handlers
                     }
 
                 case Models.GrantType.Refresh_Token:
-                    // https://dev.to/moe23/refresh-jwt-with-refresh-tokens-in-asp-net-core-5-rest-api-step-by-step-3en5
+                // https://dev.to/moe23/refresh-jwt-with-refresh-tokens-in-asp-net-core-5-rest-api-step-by-step-3en5
                 default:
                     throw new OAuth2Exception(new OAuth2ErrorDto
                     {

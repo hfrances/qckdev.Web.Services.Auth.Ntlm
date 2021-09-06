@@ -54,17 +54,12 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Handlers
                 switch (request.ResponseType)
                 {
                     case Models.ResponseType.Code:
-                        var jwtCodeOptions = JwtOptionsMonitor.Get(Constants.AUTHENTICATIONSCHEME_CODE);
                         var jwtCodeMoreOptions = JwtMoreOptionsMonitor.Get(Constants.AUTHENTICATIONSCHEME_CODE);
-                        var claims = new List<Claim>(user.Claims)
-                        {
-                            new Claim(Helper.CLAIM_ACCESSTYPE, request.AccessType.ToString())
-                        };
-                        var keyCode = jwtCodeOptions.TokenValidationParameters.IssuerSigningKey;
-                        var tmpCode = JwtGenerator.CreateToken(keyCode, user.Identity.Name, claims: claims, lifespan: jwtCodeMoreOptions.TokenLifeTimespan);
-                        var code = $"4/{tmpCode.AccessToken}";
+                        var expired = DateTimeOffset.Now.Add(jwtCodeMoreOptions.TokenLifeTimespan ?? TimeSpan.FromMinutes(10));
+                        var tmpCode = JwtGenerator.CreateGenericToken();
+                        var code = $"4/{tmpCode}";
 
-                        await Helper.UpdateCodeTokenAsync(this.TokenService, user.Identity.Name, code, tmpCode.Expired);
+                        await Helper.UpdateCodeTokenAsync(this.TokenService, user.Identity.Name, code, expired, request.AccessType);
                         return await Task.FromResult(new AuthorizationResponseDto
                         {
                             Code = code,

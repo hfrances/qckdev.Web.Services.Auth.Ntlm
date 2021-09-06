@@ -13,6 +13,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence
             : base(options) { }
 
         public DbSet<OAuth2Token> OAuth2Tokens { get; set; }
+        public DbSet<OAuth2TokenProperty> OAuth2TokenProperties { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

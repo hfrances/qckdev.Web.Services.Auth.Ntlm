@@ -34,7 +34,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Helpers
             };
         }
 
-        public async static Task UpdateCodeTokenAsync(ITokenService tokenService, string userName, [DisallowNull] string code, DateTimeOffset expiredUtc)
+        public async static Task UpdateCodeTokenAsync(ITokenService tokenService, string userName, [DisallowNull] string code, DateTimeOffset expiredUtc, AccessType accessType)
         {
             var tokens = await tokenService.GetTokensByWindowsUserAsync(userName);
             var pendingTokens = tokens.Where(x => x.Type == Constants.TOKENTYPE_CODE && x.State == TokenState.Active).Select(x => x.TokenId);
@@ -44,7 +44,11 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Helpers
             {
                 // Crear un nuevo refresh_token.
                 // TODO: ¿Cuánto debería ser el refresh_token?
-                await tokenService.SaveTokenToWindowsUserAsync(userName, Constants.TOKENTYPE_CODE, code, expiredUtc);
+                await tokenService.SaveTokenToWindowsUserAsync(userName, Constants.TOKENTYPE_CODE, code, expiredUtc, new Dictionary<string, string>
+                { 
+                    { Constants.TOKENPROPERTY_LOGIN, userName },
+                    { Constants.TOKENPROPERTY_ACCESSTYPE, accessType.ToString() }
+                });
             }
         }
 
@@ -58,7 +62,10 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application.Helpers
             {
                 // Crear un nuevo refresh_token.
                 // TODO: ¿Cuánto debería ser el refresh_token?
-                await tokenService.SaveTokenToWindowsUserAsync(userName, Constants.TOKENTYPE_REFRESHTOKEN, refreshToken, DateTimeOffset.UtcNow.AddDays(10));
+                await tokenService.SaveTokenToWindowsUserAsync(userName, Constants.TOKENTYPE_REFRESHTOKEN, refreshToken, DateTimeOffset.UtcNow.AddDays(10), new Dictionary<string, string>
+                {
+                    { Constants.TOKENPROPERTY_LOGIN, userName }
+                });
             }
         }
 

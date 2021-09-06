@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using qckdev.Web.Services.Auth.Ntlm.Application.Exceptions;
 using System.DirectoryServices.AccountManagement;
+using Microsoft.EntityFrameworkCore;
 
 namespace qckdev.Web.Services.Auth.Ntlm.Persistence
 {
@@ -19,10 +20,21 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence
         ApplicationDbContext Context { get; }
         UserManager<ApplicationUser> UserManager { get; }
 
+
         public TokenService(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             this.Context = context;
             this.UserManager = userManager;
+        }
+
+
+        public async Task<Models.Token> GetTokenAsync(string type, string value)
+        {
+            var token = await Context.OAuth2Tokens
+                      .Include(i => i.Properties)
+                  .SingleOrDefaultAsync(x => x.Type == type && x.Value == value);
+
+            return MapToken(token);
         }
 
         public async Task<IEnumerable<Models.Token>> GetTokensByWindowsUserAsync(string login)
@@ -36,12 +48,14 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence
             }
             else
             {
-                rdo = Context.OAuth2Tokens.Where(x => x.UserId == user.Id);
+                rdo = Context.OAuth2Tokens
+                        .Include(i => i.Properties)
+                    .Where(x => x.UserId == user.Id);
             }
             return rdo.Select(MapToken);
         }
 
-        public async Task<Models.Token> SaveTokenToWindowsUserAsync(string login, string type, string value, DateTimeOffset expires)
+        public async Task<Models.Token> SaveTokenToWindowsUserAsync(string login, string type, string value, DateTimeOffset expires, IReadOnlyDictionary<string, string> properties)
         {
             OAuth2Token token;
             var user = await CreateOrGetWindowsUserAsync(this.UserManager, login);
@@ -51,7 +65,12 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence
                 UserId = user.Id,
                 Type = type,
                 Value = value,
-                ExpiresUtc = expires
+                ExpiresUtc = expires,
+                Properties = properties.Select(x => new OAuth2TokenProperty()
+                {
+                    Name = x.Key,
+                    Value = x.Value
+                }).ToList(),
             };
             await Context.OAuth2Tokens.AddAsync(token);
             await Context.SaveChangesAsync();
@@ -80,21 +99,37 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence
             await Context.SaveChangesAsync();
         }
 
+
         private static Models.Token MapToken(OAuth2Token token)
-            => new()
+        {
+            Models.TokenState tokenState;
+
+            if (token.Banned)
+            {
+                tokenState = Models.TokenState.Banned;
+            }
+            else if (token.Consumed)
+            {
+                tokenState = Models.TokenState.Consumed;
+            }
+            else
+            {
+                tokenState = Models.TokenState.Active;
+            }
+            return new()
             {
                 TokenId = token.TokenId,
                 Type = token.Type,
                 Value = token.Value,
                 ExpiresUtc = token.ExpiresUtc,
-                State =
-                    token.Banned ?
-                        Models.TokenState.Banned :
-                        token.Consumed ?
-                            Models.TokenState.Consumed :
-                            Models.TokenState.Active,
+                State = tokenState,
+                Properties = token.Properties.Select(x => new Models.TokenProperty
+                {
+                    Name = x.Name,
+                    Value = x.Value
+                })
             };
-
+        }
 
         private static async Task<ApplicationUser> CreateOrGetWindowsUserAsync(UserManager<ApplicationUser> userManager, string login)
         {
@@ -125,7 +160,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence
         private static ApplicationUser CreateUserFromPrincipal(string login)
         {
             Guid userId = Guid.NewGuid();
-            var domainContext = new PrincipalContext(ContextType.Machine);
+            var domainContext = new PrincipalContext(ContextType.Domain);
             var userPrincipal = UserPrincipal.FindByIdentity(domainContext, login);
             var loginParts = login.Split('\\');
 

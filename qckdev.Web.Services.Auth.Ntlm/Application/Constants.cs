@@ -12,5 +12,9 @@ namespace qckdev.Web.Services.Auth.Ntlm.Application
         public const string TOKENTYPE_CODE = "Code";
         public const string TOKENTYPE_REFRESHTOKEN = "Refresh";
 
+        internal const string TOKENPROPERTY_LOGIN = "Login";
+        internal const string TOKENPROPERTY_ACCESSTYPE = "AccessType";
+
+
     }
 }

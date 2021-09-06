@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace qckdev.Web.Services.Auth.Ntlm.Persistence.Entities
 {
@@ -14,6 +15,7 @@ namespace qckdev.Web.Services.Auth.Ntlm.Persistence.Entities
         public bool Consumed { get; set; }
 
         public ApplicationUser User { get; set; }
+        public ICollection<OAuth2TokenProperty> Properties { get; set; }
 
     }
 }

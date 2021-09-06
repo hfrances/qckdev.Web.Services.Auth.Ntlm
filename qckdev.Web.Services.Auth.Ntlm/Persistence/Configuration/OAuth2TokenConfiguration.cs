@@ -4,7 +4,7 @@ using qckdev.Web.Services.Auth.Ntlm.Persistence.Entities;
 
 namespace qckdev.Web.Services.Auth.Ntlm.Persistence.Configuration
 {
-    sealed class TokenConfiguration : IEntityTypeConfiguration<OAuth2Token>
+    sealed class OAuth2TokenConfiguration : IEntityTypeConfiguration<OAuth2Token>
     {
         public void Configure(EntityTypeBuilder<OAuth2Token> builder)
         {
